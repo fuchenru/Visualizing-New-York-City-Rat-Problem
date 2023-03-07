@@ -1,0 +1,265 @@
+---
+title: "Project 1"
+author: "Group Member: Peter Fu Chen, Mike Liu"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=TRUE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.align = 'center')
+```
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(ggthemes)
+rats_raw <- read_csv("Rat_Sightings.csv", na = c("", "NA", "N/A"))
+# If you get an error that says "All formats failed to parse. No formats
+# found", it's because the mdy_hms function couldn't parse the date. The date
+# variable *should* be in this format: "04/03/2017 12:00:00 AM", but in some
+# rare instances, it might load without the seconds as "04/03/2017 12:00 AM".
+# If there are no seconds, use mdy_hm() instead of mdy_hms().
+rats_clean <- rats_raw %>%
+  rename(created_date = `Created Date`,
+         location_type = `Location Type`,
+         borough = Borough) %>%
+  mutate(created_date = mdy_hms(created_date)) %>%
+  mutate(sighting_year = year(created_date),
+         sighting_month = month(created_date),
+         sighting_day = day(created_date),
+         sighting_weekday = wday(created_date, label = TRUE, abbr = FALSE)) %>%
+  filter(borough != "Unspecified")
+
+colnames(rats_clean)[24] <- "Borough"
+```
+
+
+
+# Part 1: Visualizing New York City’s Rat Problem
+
+## Background and Motivation
+
+Source of data: [NYC Rat Sightings](https://www.kaggle.com/datasets/new-york-city/nyc-rat-sightings)
+
+|   It is widely known that rats can pose significant risks to both human health and property. They are carriers of deadly viruses and have the potential to cause fires by gnawing on electrical wires. If you are a resident of New York, it's natural to be concerned about the presence of rats near your house. 
+
+|   The New York City rat dataset is collected and maintained by the City of New York via their 311 portal. It provides information on the location, type, and date of rat sightings, as well as the actions taken to address the issue. The dataset is useful for us to analyze, including mapping rat populations, identifying hotspots, and studying the effectiveness of pest control efforts. 
+
+|   By analyzing the New York City’s database of rat sightings, we hope to gain insights into the distribution of rats across different boroughs and types of buildings. This information can then be used to inform the development of effective pest control measures to address the rat infestation problem in the city.
+
+|   The motivation for this project comes from the need to address the negative impact that rats can have on public health and the environment. By using data analytics techniques to analyze the New York City’s database of rat sightings, we hope to provide valuable insights into the distribution of rats in the city and to support the development of effective pest control measures. Through this project, we aim to make a meaningful contribution to the efforts to manage the rat population in New York City and to improve public health and well-being.
+
+|   But the question remains, how can we determine where these rats are hiding?
+
+
+\newpage
+## Methodology
+
+### Rat Sightings in New York City Over Time
+
+|   Before answering the above questions, let's take a look at the development history of rat disasters. We analyzed the rat sightings data from 2010 to 2017.
+
+|   The analysis revealed that there was a significant increase in the number of rat sightings starting from 2013, with the number of sightings reaching a peak in 2016. This trend highlights the need for continued monitoring and implementation of effective pest control measures to address the issue of rat populations in the city.
+
+
+
+```{r, echo = FALSE, warning=FALSE}
+rats_clean %>%
+  mutate(Year = as.integer(format(as.Date(created_date), "%Y"))) %>%
+  group_by(Year) %>%
+  summarize(Sightings = n())%>%
+  ggplot(aes(x = Year, y = Sightings)) +
+  geom_line(color = "#2b6a99", size = 0.7) +
+  labs(x = "Year", y = "Number of Rat Sightings", title = "Rat Sightings in New York City Over Time") +
+  theme_stata() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+        axis.title = element_text(face = "bold", size = 12),
+        axis.text = element_text(size = 10))
+```
+
+
+\newpage
+
+### Rat Sightings by Location Type
+
+|   We are also concerning what type of buildings had the most sightings?
+
+|   Based on the analysis, it appears that the type of building with the most rat sightings is 3+ family buildings. This conclusion was drawn from the plot shown below that the relationship between the location type and the number of rat sightings. By visualizing the data in this way, we were able to identify which type of building had the highest number of rat sightings and better understand the distribution of rats in the city.
+
+```{r, echo = FALSE, warning=FALSE, message= FALSE}
+rats_clean %>% 
+  group_by(location_type) %>% 
+  summarize(Sightings = n()) %>%
+  arrange(desc(Sightings)) %>%
+  filter(Sightings > 710) %>%
+  ggplot(aes(y = location_type, x = Sightings, fill = location_type)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Number of Rat Sightings", y = "", title = "Rat Sightings by Location Type") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 8),
+        plot.title = element_text(size = 16, face = "bold"),
+        panel.grid.major.y = element_line(color = "gray", size = 0.25),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.x = element_line(color = "gray", size = 0.25),
+        panel.grid.minor.x = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        legend.position = "none")
+```
+
+
+\newpage
+
+### Rat Sightings in New York City by borough
+
+|   Next, we divide by borough, and look at the growth history of rats in different borough in recent years.
+
+|   The analysis of the rat sightings by borough in New York City reveals that Brooklyn has consistently been the borough with the highest number of rat sightings. With a total of 34,673 sightings, Brooklyn outpaces the other boroughs. Manhattan ranks second in terms of rat sightings, according to the bar plot. These findings highlight the need for targeted pest control efforts in these areas in order to effectively manage the rat population.
+
+
+```{r, echo = FALSE, warning=FALSE}
+rats_clean %>% 
+  group_by(Borough) %>% 
+  summarize(Sightings = n()) %>%
+  ggplot(aes(x = Borough, y = Sightings, fill = Sightings))+
+  geom_bar(stat = "identity", colour = "black") +
+  geom_text(aes(label = Sightings), position = position_dodge(0.9), vjust = 2, size = 4, color = "#ffffff") +
+  labs(x = "Borough", y = "Number of Rat Sightings", title = "Rat Sightings in New York City by borough") +
+  theme_stata() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+        axis.title = element_text(face = "bold", size = 12),
+        axis.text = element_text(size = 10),
+        legend.position = "none")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+
+
+|   The analysis of the rat sightings in New York City can also be conducted at the borough level and over time. As seen in the first plot, the number of rat sightings in the city increased exponentially after 2013. To understand which boroughs were contributing to this trend, we analyzed the data by borough and year in the below plot.
+
+|   The results of this analysis, as shown in the earlier plot, indicate that the growth in rat sightings in New York City was driven by an increase in sightings in Brooklyn. The number of rat sightings in Brooklyn began to rise after 2013 and reached a peak in 2017 before declining. This trend is consistent with the overall trend seen in the first plot, which highlights the relationship between the growth in the rat population and specific boroughs.
+
+|   These findings demonstrate the importance of understanding the distribution of the rat problem in New York City and the need for targeted pest control efforts in the affected areas. By analyzing the data at both the city-wide and borough levels, we can gain a more complete understanding of the problem and develop more effective strategies for addressing it.
+
+
+
+```{r,fig.height=8,fig.width=8, echo = FALSE, warning=FALSE}
+ggplot(rats_clean, aes(x=Borough,y=sighting_month))+ 
+  geom_col(aes(color=Borough,fill=Borough))+
+  labs(x="",y="Sightings",title="Rat Sightings in New York City by borough in year")+
+  facet_wrap(~sighting_year,ncol = 3,nrow = 5)+
+  scale_x_discrete(guide=guide_axis(n.dodge=3))+
+  theme_stata() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+        axis.title = element_blank(),
+        axis.text = element_text(size = 5))
+```
+
+
+
+\newpage
+
+## Does policy works?
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+rat_data_effect <- rats_clean %>%
+  mutate(Year = as.integer(format(as.Date(created_date), "%Y")),
+         Month = as.integer(format(as.Date(created_date), "%m"))) %>%
+  group_by(Borough,Year) %>%
+  summarize(Sightings = n()) %>%
+  filter(Year == c(2016,2017)) %>%
+  mutate(Control = ifelse(Year == 2016, "Before", "After")) %>%
+  select(Borough,Control,Sightings)
+```
+
+
+
+
+
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+# ggplot(rat_data_effect, aes(x = borough, y = Sightings, fill = Control)) +
+#   geom_bar(stat = "identity", position = "dodge") +
+#   labs(x = "Borough", y = "Number of Rat Sightings", fill = "Control Status", title = "Effectiveness of Pest Control Measures")
+```
+
+
+```{r, echo = FALSE, warning=FALSE}
+knitr::kable(rat_data_effect) 
+```
+
+|   We take the report,[NYC’s Newest Weapon Against the Rats? Sterilization](https://www.wired.com/2017/04/nycs-newest-weapon-rats-sterilization/), as reference.
+
+|   The analysis of the effectiveness of pest control measures is critical for determining the success of efforts to control the rat population in New York City. By comparing the number of rat sightings before and after control measures have been implemented, we can evaluate the impact of these efforts on the rat population.
+
+|   One measure that has been implemented in New York City is the sterilization of rats, as mentioned in the article "NYC’s Newest Weapon Against the Rats? Sterilization". This measure was proposed by Mayor Bill De Blasio and is aimed at reducing the rat population by preventing them from reproducing.
+
+|   At the start of our analysis, we were concerned about the distribution of rats across different boroughs in New York City. After analyzing the data, we found that Brooklyn has consistently been the borough with the most rat sightings. Additionally, we learned that after 2016, the number of rat sightings decreased significantly.
+
+|   To quantify the effectiveness of the sterilization measure, we plotted the number of rat sightings before and after the implementation of the measure. The results showed a significant decrease in the number of rat sightings across different boroughs. This indicates that the sterilization measure may have been effective in reducing the rat population in New York City.
+
+|   Overall, our analysis provides valuable insights into the effectiveness of pest control measures in controlling the rat population in New York City. The results of this analysis can be used to inform future pest control efforts and ensure the continued success in reducing the rat population in the city.
+
+
+\newpage
+# Part 2: Data Hunting
+
+
+- [Data Source: FiveThirtyEight](https://data.fivethirtyeight.com/)
+
+- [The Economic Guide To Picking A College Major](https://github.com/fivethirtyeight/data/tree/master/college-majors)
+
+|   FiveThirtyEight is a data-focused news and analysis website that is known for its use of data and statistical analysis in its reporting. Its data sets are particularly interesting for data analytics because they cover a wide range of topics and are often based on extensive and diverse sources of data. The data sets are also well-organized and well-documented, making it easy for data analysts to work with the data and generate insights. 
+
+|   We have selected the College Majors dataset from FiveThirtyEight for our potential research project. Our objective is to determine which major or category has the most favorable prospects in terms of employment and earnings. Despite the common perception that a college degree is a ticket to financial stability, we believe that this is not necessarily the case. There are numerous factors that influence a person's financial success, and choosing the right major is just one of them. By analyzing the data from the College Majors dataset, we hope to gain insights into which majors are more likely to result in lower unemployment rates and higher earning potential.
+
+
+- [Data Source: BuzzFeed News](https://github.com/BuzzFeedNews)
+
+- [Here And Now: These Maps Show How Climate Change Has Already Transformed The Earth](https://github.com/BuzzFeedNews/2019-04-climate-change)
+
+|   The BuzzFeed News data sets available on GitHub are particularly interesting for data analytics because they cover a wide range of topics and are often based on unique and under-explored sources of data. For example, BuzzFeed News has published data sets on topics such as political campaign donations, police shootings, and consumer product safety. 
+
+|   For our potential research project, we have chosen the 2019 BuzzFeed News post on the current reality of climate change as our source of data. This dataset contains the foundational information for creating a map that displays temperature trends across the globe. Our objective is to conduct a comprehensive analysis of the evolution of climate change on our planet and make predictions about its future trajectory. The ultimate goal of our project is to provide policy makers with an informed understanding of the urgency of the situation and the need for swift action to implement new policies. We believe that our research will be a valuable resource in the fight against climate change, helping to guide decision-making and prioritize resources in a way that will have the greatest impact.
+
+
+- [Data Source: DataHub](https://datahub.io/collections)
+
+- [CIRP Freshmen Survey](https://datahub.io/core/cirp-survey-of-freshmen#readme)
+
+|   Datahub's data collections include data on climate change, economic indicators, and health and wellness. Datahub provides a wide range of tools and resources for working with the data, including data cleaning and preprocessing tools, visualization tools, and data analysis libraries. Overall, the quality and diversity of Datahub's data sets make them an excellent resource for data analytics projects.
+
+|   For our potential research project, we have selected the CIRP Freshmen Survey from DataHub as our data source. The CIRP Freshmen Survey is a comprehensive study that gathers information from first-year college students from institutions across the United States. The survey covers a wide range of topics, including financial aid, academic major, religious affiliation, intended career path, and much more. This dataset is incredibly rich and offers a wealth of information for analysis. Our aim is to use the data from this survey to gain a deeper understanding of the characteristics and experiences of college students in the United States. With this information, we hope to provide insights that could inform policy decisions at the institutional level, particularly with regards to which groups of students may require additional support and resources. We believe that our research has the potential to make a significant contribution to the field and have a positive impact on the lives of students.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
