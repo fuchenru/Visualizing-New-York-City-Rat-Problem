@@ -1,5 +1,7 @@
 # Visualizing-New-York-City's-Rat-Problem
 
+Project for SSC442
+
 It is widely known that rats can pose significant risks to both human health and property. They are carriers of deadly viruses and have the potential to cause fires by gnawing on electrical wires. If you are a resident of New York, it's natural to be concerned about the presence of rats near your house. 
 
 The New York City rat dataset is collected and maintained by the City of New York via their 311 portal. It provides information on the location, type, and date of rat sightings, as well as the actions taken to address the issue. The dataset is useful for us to analyze, including mapping rat populations, identifying hotspots, and studying the effectiveness of pest control efforts. 
